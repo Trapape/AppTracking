@@ -1,0 +1,135 @@
+{
+  "project_info": {
+    "project_number": "716283415470",
+    "firebase_url": "https://trapape-default-rtdb.firebaseio.com",
+    "project_id": "trapape",
+    "storage_bucket": "trapape.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716283415470:android:02124298de16fe36e3963f",
+        "android_client_info": {
+          "package_name": "com.apptracking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "716283415470-fg4kn5ucbretq046ej609t6a99i4hosk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAD2LJGR1bkUfr948kwhVypdpEq-hDcoqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "716283415470-fg4kn5ucbretq046ej609t6a99i4hosk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "716283415470-vbj788h0nsqmq4p3f0jtuiok6hdlgtu4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.trapape.truck"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716283415470:android:dbd90f8346bf6a5be3963f",
+        "android_client_info": {
+          "package_name": "com.trapape.consig"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "716283415470-iet1o3t3d1siga8u3jaavmm2gmiq8340.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trapape.consig",
+            "certificate_hash": "de7d6c554dde53a366dca52fc5af754f53631ca1"
+          }
+        },
+        {
+          "client_id": "716283415470-fg4kn5ucbretq046ej609t6a99i4hosk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAD2LJGR1bkUfr948kwhVypdpEq-hDcoqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "716283415470-fg4kn5ucbretq046ej609t6a99i4hosk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "716283415470-vbj788h0nsqmq4p3f0jtuiok6hdlgtu4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.trapape.truck"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716283415470:android:d3a0df80d95a84e6e3963f",
+        "android_client_info": {
+          "package_name": "com.trapape.truck"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "716283415470-7d9540f1hqa590e6frj815t4m71braup.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trapape.truck",
+            "certificate_hash": "6e0a81c51194fac7d47087f1f297925e8ee4ef1c"
+          }
+        },
+        {
+          "client_id": "716283415470-fg4kn5ucbretq046ej609t6a99i4hosk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAD2LJGR1bkUfr948kwhVypdpEq-hDcoqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "716283415470-fg4kn5ucbretq046ej609t6a99i4hosk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "716283415470-vbj788h0nsqmq4p3f0jtuiok6hdlgtu4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.trapape.truck"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
