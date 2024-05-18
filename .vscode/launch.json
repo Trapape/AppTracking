@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Android Hermes",
+      "request": "launch",
+      "type": "reactnativedirect",
+      "cwd": "${workspaceFolder}",
+      "enableDebug": false,
+      "platform": "android"
+    },
+
+    {
+      "name": "Debug Android",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "android",
+      "target": "simulator",
+      "sourceMaps": true,
+      "outDir": "${workspaceRoot}/.vscode/.react",
+      "internalConsoleOptions": "openOnSessionStart"
+    }
+  ]
+}

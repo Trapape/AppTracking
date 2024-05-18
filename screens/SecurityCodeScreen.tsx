@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,20 @@ import {
 } from 'react-native';
 import database from '@react-native-firebase/database';
 import SvgSecurity from '../assets/images/SvgSecurity';
+import {useAppContext} from '../context/AppContext';
 
 function SecurityCodeScreen() {
   const [code, setCode] = useState('');
-  const idLoad = '048d7989-fc62-47f1-bfef-1b2f3982800c';
+  const {id} = useAppContext();
+  console.log('Current ID:', useAppContext());
+  useEffect(() => {
+    console.log('Current ID from context:', id); // Debugging line
+  }, [id]);
 
   const handleVerifyCode = async () => {
     try {
       const reference = database().ref(
-        `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/securityCodes/${idLoad}`,
+        `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/securityCodes/${id}`,
       );
       const snapshot = await reference.once('value');
       const firebaseCode = snapshot.val().code;
@@ -39,6 +44,8 @@ function SecurityCodeScreen() {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.text}>Location Permission Screen</Text>
+      <Text>Código de verificación: {id}</Text>
       <View style={styles.svgContainer}>
         <SvgSecurity width="100%" height="100%" />
       </View>
