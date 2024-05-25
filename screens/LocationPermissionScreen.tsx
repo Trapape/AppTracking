@@ -2,7 +2,6 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -116,10 +115,6 @@ const LocationPermissionScreen: React.FC = () => {
       <View style={styles.svgContainer}>
         <SvgLocation width="100%" height="100%" />
       </View>
-      <Image
-        source={require('../assets/images/undraw_location_tracking_re_n3ok.svg')}
-        style={styles.image}
-      />
       <Text style={styles.description}>
         Trapape recopila datos de ubicación para habilitar la búsqueda de cargas
         y seguimiento de las cargas incluso cuando la aplicación está cerrada o

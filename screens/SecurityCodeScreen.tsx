@@ -10,11 +10,14 @@ import {
 import database from '@react-native-firebase/database';
 import SvgSecurity from '../assets/images/SvgSecurity';
 import {useAppContext} from '../context/AppContext';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from 'react-native-screens/lib/typescript/native-stack/types';
 
 function SecurityCodeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [code, setCode] = useState('');
   const {id} = useAppContext();
-  console.log('Current ID:', useAppContext());
+
   useEffect(() => {
     console.log('Current ID from context:', id); // Debugging line
   }, [id]);
@@ -27,7 +30,7 @@ function SecurityCodeScreen() {
       const snapshot = await reference.once('value');
       const firebaseCode = snapshot.val().code;
       if (code === firebaseCode) {
-        Alert.alert('Verificación', 'El código ingresado es correcto.');
+        navigation.navigate('Tracking');
       } else {
         Alert.alert('Verificación', 'El código ingresado es incorrecto.');
       }

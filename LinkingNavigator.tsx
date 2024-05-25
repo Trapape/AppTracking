@@ -8,12 +8,14 @@ import {Colors} from 'react-native/Libraries/NewAppScreen';
 import HomeScreen from './screens/HomeScreen';
 import LocationPermissionScreen from './screens/LocationPermissionScreen';
 import SecurityCodeScreen from './screens/SecurityCodeScreen';
+import TrackingScreen from './screens/TrackingScreen';
 import {useAppContext} from './context/AppContext';
 
 export type RootStackParamList = {
   Home: undefined;
   LocationPermission: undefined;
   SecurityCode: {id: string};
+  Tracking: undefined;
 };
 
 const linking = {
@@ -23,6 +25,7 @@ const linking = {
       Home: 'home',
       LocationPermission: 'permissions',
       SecurityCode: 'entercode/:id',
+      Tracking: 'tracking',
     },
   },
 };
@@ -95,6 +98,11 @@ function LinkingNavigator() {
           name="SecurityCode"
           component={SecurityCodeScreen}
           options={{title: 'Código de verificación'}}
+        />
+        <Stack.Screen
+          name="Tracking"
+          component={TrackingScreen}
+          options={{title: 'Tracking'}}
         />
       </Stack.Navigator>
     </NavigationContainer>
