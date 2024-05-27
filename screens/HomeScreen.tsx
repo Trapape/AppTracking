@@ -26,6 +26,9 @@ const HomeScreen: React.FC = () => {
 
         if (permissionsToRequest.length > 0) {
           navigation.navigate('LocationPermission');
+          // } else if (Radar.isTracking()) {
+          //   console.log(Radar.isTracking());
+          //   navigation.navigate('Tracking');
         } else {
           navigation.navigate('SecurityCode');
         }
