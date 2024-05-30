@@ -4,13 +4,14 @@ import Radar from 'react-native-radar';
 import {useAppContext} from '../context/AppContext';
 import DeviceInfo from 'react-native-device-info';
 import database from '@react-native-firebase/database';
+import axios from 'axios';
 
 const TRACKING_OPTIONS = {
-  desiredStoppedUpdateInterval: 1800, // Intervalo deseado (en segundos) para actualizaciones cuando el usuario está detenido
+  desiredStoppedUpdateInterval: 900, // Intervalo deseado (en segundos) para actualizaciones cuando el usuario está detenido
   fastestStoppedUpdateInterval: 300, // Intervalo más rápido (en segundos) para actualizaciones cuando el usuario está detenido
   desiredMovingUpdateInterval: 300, // Intervalo deseado (en segundos) para actualizaciones cuando el usuario está en movimiento
   fastestMovingUpdateInterval: 60, // Intervalo más rápido (en segundos) para actualizaciones cuando el usuario está en movimiento
-  desiredSyncInterval: 140, // Intervalo deseado (en segundos) para sincronizar datos con el servidor
+  desiredSyncInterval: 120, // Intervalo deseado (en segundos) para sincronizar datos con el servidor
   desiredAccuracy: 'high' as const, // Precisión deseada de la ubicación ("high", "medium", "low", "none")
   stopDuration: 150, // Duración (en segundos) para considerar que el usuario se ha detenido
   stopDistance: 70, // Distancia (en metros) para considerar que el usuario se ha detenido
@@ -20,11 +21,11 @@ const TRACKING_OPTIONS = {
   showBlueBar: true, // Mostrar una barra azul en iOS cuando se usa el servicio de ubicación en segundo plano
   stoppedGeofenceRadius: 100, // Radio (en metros) de la geovalla cuando el usuario está detenido
   useMovingGeofence: true, // Usar geovallas para detectar cuando el usuario está en movimiento
-  movingGeofenceRadius: 200, // Radio (en metros) de la geovalla cuando el usuario está en movimiento
+  movingGeofenceRadius: 250, // Radio (en metros) de la geovalla cuando el usuario está en movimiento
   syncGeofences: false, // Sincronizar geovallas con el servidor
   useVisits: false, // Usar visitas para detectar entradas y salidas en lugares importantes (opcional)
-  useSignificantLocationChanges: false, // Usar cambios significativos de ubicación para actualizaciones (opcional)
-  beacons: true, // Usar balizas para detectar proximidad (opcional)
+  useSignificantLocationChanges: true, // Usar cambios significativos de ubicación para actualizaciones (opcional)
+  beacons: false, // Usar balizas para detectar proximidad (opcional)
   syncGeofencesLimit: 10, // Límite de geovallas para sincronizar (opcional)
   foregroundServiceEnabled: true, // Habilitar el servicio en primer plano para Android (opcional)
 };
@@ -33,30 +34,36 @@ const TrackingScreen = () => {
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const {id} = useAppContext();
 
-  const pushData = async (path: string | undefined, data: any) => {
+  const sendLocationWebhook = async (data: any) => {
     try {
-      const newRef = await database().ref(path).push(data);
-      console.log('Data pushed successfully with ID: ', newRef.key);
+      const response = await axios.post(
+        'https://us-central1-trapape.cloudfunctions.net/handleRadarLocation',
+        data,
+      );
+      console.log('Location data sent successfully:', response.data);
     } catch (error) {
-      console.error('Error pushing data: ', error);
+      console.error('Error sending location data:', error);
+    }
+  };
+
+  const sendEventsWebhook = async (data: any) => {
+    try {
+      const response = await axios.post(
+        'https://us-central1-trapape.cloudfunctions.net/handleRadarEvents',
+        data,
+      );
+      console.log('Events data sent successfully:', response.data);
+    } catch (error) {
+      console.error('Error sending events data:', error);
     }
   };
 
   const setData = async (path: any, idData: any, data: any) => {
     try {
-      await database().ref(`${path}/${idData}`).set(data);
+      await database().ref(`${path}/${idData}`).update(data);
       console.log('Data set successfully');
     } catch (error) {
       console.error('Error setting data: ', error);
-    }
-  };
-
-  const updateData = async (path: any, data: any) => {
-    try {
-      await database().ref(`${path}`).update(data);
-      console.log('Data updated successfully');
-    } catch (error) {
-      console.error('Error updating data: ', error);
     }
   };
 
@@ -104,7 +111,7 @@ const TrackingScreen = () => {
           externalId: `load_${id}_${point.key}`,
           description: `Geofence for load ${id} ${point.key}`,
           coordinates: [longitude, latitude],
-          radius: point.radius || 500, // default radius if not provided
+          radius: point.radius || 1000, // default radius if not provided
           userIds: [deviceId], // add device ID to userIds array
           live: false,
         };
@@ -122,6 +129,7 @@ const TrackingScreen = () => {
     description: any;
     coordinates: any;
     radius: any;
+    userIds: any;
   }) => {
     try {
       const response = await fetch(
@@ -130,7 +138,7 @@ const TrackingScreen = () => {
           method: 'PUT',
           headers: {
             Authorization:
-              'prj_test_sk_5b8c767d2b13433d0db3e42ae72fc0933b8ea76f',
+              'prj_live_sk_5c0ef8c2755aefb837e398da83aad8062c57aa6b',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -138,6 +146,8 @@ const TrackingScreen = () => {
             type: 'circle',
             coordinates: geofence.coordinates,
             radius: geofence.radius,
+            userIds: geofence.userIds,
+            dwellThreshold: 10,
           }),
         },
       );
@@ -164,8 +174,8 @@ const TrackingScreen = () => {
       const status = await Radar.requestPermissions(true); // Solicitar permisos de ubicación en segundo plano
       if (status === 'GRANTED_BACKGROUND') {
         Radar.setForegroundServiceOptions({
-          text: 'Location tracking started',
-          title: 'Location updates',
+          text: 'Seguimiento de ubicación iniciado',
+          title: 'Actualizaciones de ubicación',
           updatesOnly: false,
           importance: 2,
           activity: 'com.AppTracking',
@@ -179,6 +189,18 @@ const TrackingScreen = () => {
       }
     } catch (err) {
       console.error('Error al solicitar permisos:', err);
+      Alert.alert((err as Error).toString());
+    }
+  };
+
+  const isTracking = async () => {
+    try {
+      const status = Radar.isTracking();
+      Alert.alert(Radar.isTracking.toString());
+      console.log('Tracking status:', status);
+    } catch (err) {
+      console.error('Error al obtener el estado de rastreo:', err);
+      Alert.alert((err as Error).toString());
     }
   };
 
@@ -206,28 +228,27 @@ const TrackingScreen = () => {
         );
 
         Radar.initialize(
-          'prj_test_pk_3821b626231b40d11710b534c370fd250e768b32',
+          'prj_live_pk_5463e9a31811973fff88f5cca6c68b4a9923a80b',
         );
         Radar.setUserId(deviceId);
         Radar.setDescription(id);
-
+        Radar.setLogLevel('debug');
         await fetchAndCreateGeofences();
-
-        startTracking();
 
         const onLocation = (result: {location: any}) => {
           const {location} = result;
-          const date = new Date();
+          const deviceTimestamp = new Date();
 
           if (location) {
-            updateData(
-              `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/geoFireGroups/ServiceTracking/${id}/`,
-              {location, date},
-            );
-            pushData(
-              `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/LogLocation/${id}/listLocation/`,
-              {location, date},
-            );
+            const data = {
+              id,
+              location,
+              deviceTimestamp,
+              deviceId,
+            };
+            sendLocationWebhook(data);
+          } else {
+            console.error('No location data available');
           }
         };
 
@@ -235,38 +256,38 @@ const TrackingScreen = () => {
 
         const onEvents = (result: {events: any}) => {
           const {events} = result;
-          events.forEach(async (event: any) => {
-            const externalId = parseExternalId(event.geofence.externalId);
-            console.log('Geofence event:', event.geofence._id);
-            await pushData(
-              `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/LogEventGeofence/${externalId?.id}/${externalId?.key}/`,
-              {
-                event: event.type,
-                geofence: event,
-                timestamp: new Date(),
-              },
-            );
-          });
+          if (events && events.length > 0) {
+            const deviceTimestamp = new Date();
+            events.forEach((event: any) => {
+              const data = {
+                id,
+                event,
+                deviceTimestamp,
+                deviceId,
+              };
+              sendEventsWebhook(data);
+            });
+          } else {
+            console.error('No events data available');
+          }
         };
 
         Radar.on('events', onEvents);
+
+        Radar.on('error', (err: any) => {
+          console.error('Error event:', err);
+        });
+
+        Radar.on('clientLocation', (result: any) => {
+          console.warn('Error event:', result);
+        });
+
+        startTracking();
       }
     };
 
     initializeTracking();
   }, [deviceId, id, fetchAndCreateGeofences]);
-
-  const parseExternalId = (externalId: string) => {
-    const regex = /^load_(.+)_point_(.+)$/;
-    const match = externalId.match(regex);
-    if (match) {
-      return {
-        id: match[1],
-        key: match[2],
-      };
-    }
-    return null;
-  };
 
   return (
     <View>
@@ -281,6 +302,12 @@ const TrackingScreen = () => {
         title="Detener Rastreo"
         onPress={() => {
           Radar.stopTracking();
+        }}
+      />
+      <Button
+        title="¿Estoy rastreando?"
+        onPress={() => {
+          isTracking();
         }}
       />
     </View>
