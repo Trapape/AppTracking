@@ -19,7 +19,7 @@ export type RootStackParamList = {
 };
 
 const linking = {
-  prefixes: ['https://apptracking.com', 'apptracking://'],
+  prefixes: ['https://trapape.com', 'trapape://'],
   config: {
     screens: {
       Home: 'home',

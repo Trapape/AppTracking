@@ -171,7 +171,7 @@ exports.handleRadarEvents = functions.https.onRequest(
         } else if (event.type === 'user.exited_geofence') {
           puntoRef = `${pathBase}/entrega`;
           updateEventData = {exited_geofence: event.actualCreatedAt};
-          updateStatusData = {estatusCarga: 'En proceso de finalización'};
+          updateStatusData = {estatusCarga: 'En entrega'};
         }
       }
 

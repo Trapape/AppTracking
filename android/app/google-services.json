@@ -8,12 +8,20 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:716283415470:android:02124298de16fe36e3963f",
+        "mobilesdk_app_id": "1:716283415470:android:dbd90f8346bf6a5be3963f",
         "android_client_info": {
-          "package_name": "com.apptracking"
+          "package_name": "com.trapape.consig"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "716283415470-iet1o3t3d1siga8u3jaavmm2gmiq8340.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.trapape.consig",
+            "certificate_hash": "de7d6c554dde53a366dca52fc5af754f53631ca1"
+          }
+        },
         {
           "client_id": "716283415470-fg4kn5ucbretq046ej609t6a99i4hosk.apps.googleusercontent.com",
           "client_type": 3
@@ -44,20 +52,12 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:716283415470:android:dbd90f8346bf6a5be3963f",
+        "mobilesdk_app_id": "1:716283415470:android:e9bfafd377155802e3963f",
         "android_client_info": {
-          "package_name": "com.trapape.consig"
+          "package_name": "com.trapape.tracking"
         }
       },
       "oauth_client": [
-        {
-          "client_id": "716283415470-iet1o3t3d1siga8u3jaavmm2gmiq8340.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.trapape.consig",
-            "certificate_hash": "de7d6c554dde53a366dca52fc5af754f53631ca1"
-          }
-        },
         {
           "client_id": "716283415470-fg4kn5ucbretq046ej609t6a99i4hosk.apps.googleusercontent.com",
           "client_type": 3

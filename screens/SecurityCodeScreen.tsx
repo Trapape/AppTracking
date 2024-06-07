@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -12,17 +12,18 @@ import SvgSecurity from '../assets/images/SvgSecurity';
 import {useAppContext} from '../context/AppContext';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from 'react-native-screens/lib/typescript/native-stack/types';
+import Loader from '../componeentes/Loader';
+import CustomAlert from '../componeentes/CustomAlert';
 
 function SecurityCodeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
   const [code, setCode] = useState('');
   const {id} = useAppContext();
 
-  useEffect(() => {
-    console.log('Current ID from context:', id); // Debugging line
-  }, [id]);
-
   const handleVerifyCode = async () => {
+    setLoading(true);
     try {
       const reference = database().ref(
         `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/securityCodes/${id}`,
@@ -30,19 +31,36 @@ function SecurityCodeScreen() {
       const snapshot = await reference.once('value');
       const firebaseCode = snapshot.val().code;
       if (code === firebaseCode) {
-        navigation.navigate('Tracking');
+        setLoading(false);
+        setAlertVisible(true);
+        //navigation.navigate('Tracking');
       } else {
+        setLoading(false);
         Alert.alert('Verificación', 'El código ingresado es incorrecto.');
       }
-    } catch (error) {
-      console.error('Error fetching code from Firebase:', error);
-      Alert.alert('Error', 'Hubo un problema al verificar el código.');
+    } catch (err) {
+      setLoading(false);
+      console.error('Error fetching code from Firebase:', err);
+      Alert.alert('Error', (err as Error).message || JSON.stringify(err));
     }
   };
 
   const handleChangeText = (text: string) => {
     const alphanumericText = text.replace(/[^a-zA-Z0-9]/g, ''); // Filtra caracteres no alfanuméricos
     setCode(alphanumericText);
+  };
+
+  const handleAlertClose = () => {
+    setAlertVisible(false);
+    Alert.alert(
+      'Información',
+      'Cuando esté listo para comenzar el viaje, vuelva a hacer clic en el enlace e ingrese el código de seguridad nuevamente.',
+    );
+  };
+
+  const handleAlertConfirm = () => {
+    setAlertVisible(false);
+    navigation.navigate('Tracking');
   };
 
   return (
@@ -58,7 +76,9 @@ function SecurityCodeScreen() {
         onChangeText={handleChangeText}
         value={code}
         placeholder="Código de seguridad"
-        keyboardType="default" // Cambia esto si el código no es numérico
+        keyboardType="default"
+        textAlign="center"
+        placeholderTextColor="gray"
       />
       <TouchableOpacity style={styles.button} onPress={handleVerifyCode}>
         <Text style={styles.buttonText}>Verificar código</Text>
@@ -67,6 +87,18 @@ function SecurityCodeScreen() {
         El uso de esta información es confidencial, evitar compartir la liga
         tanto el código con cualquier persona ajena a la operación
       </Text>
+      <Loader loading={loading} />
+      <CustomAlert
+        visible={alertVisible}
+        title="Confirmación"
+        message="¿Está listo para comenzar la operación?"
+        imageSource={require('../assets/images/undraw_navigator_green.png')}
+        buttons={[
+          {text: 'No', onPress: handleAlertClose, color: '#FF6347'},
+          {text: 'Sí', onPress: handleAlertConfirm, color: '#32CD32'},
+        ]}
+        onRequestClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 }
@@ -103,6 +135,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     width: '80%',
     alignSelf: 'center',
+    fontSize: 18,
+    textAlign: 'center',
   },
   button: {
     backgroundColor: '#2196F3',
