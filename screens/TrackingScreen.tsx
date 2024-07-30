@@ -3,10 +3,14 @@ import {View, Button, Alert, StyleSheet} from 'react-native';
 import Radar from 'react-native-radar';
 import {useAppContext} from '../context/AppContext';
 import DeviceInfo from 'react-native-device-info';
-import database from '@react-native-firebase/database';
-import axios from 'axios';
 import MapView, {Marker, Polyline} from 'react-native-maps';
-import Loader from '../componeentes/Loader';
+import Loader from '../componentes/Loader';
+import {useNetInfo} from '@react-native-community/netinfo';
+import {NetworkProvider} from 'react-native-offline';
+import useGeofences from '../hooks/useGeofences';
+import usePendingData from '../hooks/usePendingData';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Point {
   location: {
@@ -51,142 +55,112 @@ const TrackingScreen = () => {
     longitude: number;
   } | null>(null);
   const [route, setRoute] = useState<Point[]>([]);
+  const netInfo = useNetInfo();
+  const {fetchAndCreateGeofences, processGeofences} = useGeofences(
+    id,
+    deviceId,
+  );
+  const {getPendingData, savePendingData} = usePendingData();
 
-  const sendLocationWebhook = async (data: any) => {
-    try {
-      const response = await axios.post(
-        'https://us-central1-trapape.cloudfunctions.net/handleRadarLocation',
-        data,
-      );
-      console.log('Location data sent successfully:', response.data);
-    } catch (error) {
-      console.error('Error sending location data:', error);
-    }
-  };
+  // Función para enviar datos pendientes en cola
+  const sendQueue = useCallback(async () => {
+    while (netInfo.isConnected) {
+      const pendingLocationData = await getPendingData('pendingLocationData');
+      const pendingEventsData = await getPendingData('pendingEventsData');
 
-  const sendEventsWebhook = async (data: any) => {
-    try {
-      const response = await axios.post(
-        'https://us-central1-trapape.cloudfunctions.net/handleRadarEvents',
-        data,
-      );
-      console.log('Events data sent successfully:', response.data);
-    } catch (error) {
-      console.error('Error sending events data:', error);
-    }
-  };
-
-  const setData = async (path: any, idData: any, data: any) => {
-    try {
-      await database().ref(`${path}/${idData}`).update(data);
-      console.log('Data set successfully');
-    } catch (error) {
-      console.error('Error setting data: ', error);
-    }
-  };
-
-  const fetchAndCreateGeofences = useCallback(async () => {
-    try {
-      const snapshot = await database()
-        .ref(`/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/Loads/${id}/Punto`)
-        .once('value');
-
-      const puntos = snapshot.val();
-
-      if (!puntos) {
-        console.error('No geofence points available');
-        return;
+      if (pendingLocationData.length === 0 && pendingEventsData.length === 0) {
+        break; // No hay datos pendientes
       }
 
-      const allPoints: Point[] = [];
-
-      if (puntos.recoleccion) {
-        allPoints.push({
-          ...puntos.recoleccion,
-          type: 'recoleccion',
-          key: 'recoleccion',
-        });
+      if (pendingLocationData.length > 0) {
+        const data = pendingLocationData.shift();
+        try {
+          const response = await axios.post(
+            'https://us-central1-trapape.cloudfunctions.net/handleRadarLocation',
+            data,
+          );
+          console.log(
+            'Location sendQueue data sent successfully:',
+            response.data,
+          );
+          await AsyncStorage.setItem(
+            'pendingLocationData',
+            JSON.stringify(pendingLocationData),
+          );
+        } catch (error) {
+          console.error('Error sendQueue sending location data:', error);
+          pendingLocationData.unshift(data); // Reinserta el dato si falla
+          await AsyncStorage.setItem(
+            'pendingLocationData',
+            JSON.stringify(pendingLocationData),
+          );
+          break; // Detén el reintento si falla
+        }
       }
 
-      if (Array.isArray(puntos.waypoints)) {
-        puntos.waypoints.forEach((waypoint: any, index: number) => {
-          allPoints.push({
-            ...waypoint,
-            type: 'waypoint',
-            key: `waypoint_${index}`,
-            location: waypoint.location || {
-              latitude: waypoint.latitude,
-              longitude: waypoint.longitude,
-            },
-          });
-        });
+      if (pendingEventsData.length > 0) {
+        const data = pendingEventsData.shift();
+        try {
+          const response = await axios.post(
+            'https://us-central1-trapape.cloudfunctions.net/handleRadarEvents',
+            data,
+          );
+          console.log(
+            'Events sendQueue data sent successfully:',
+            response.data,
+          );
+          await AsyncStorage.setItem(
+            'pendingEventsData',
+            JSON.stringify(pendingEventsData),
+          );
+        } catch (error) {
+          console.error('Error sendQueue sending events data:', error);
+          pendingEventsData.unshift(data); // Reinserta el dato si falla
+          await AsyncStorage.setItem(
+            'pendingEventsData',
+            JSON.stringify(pendingEventsData),
+          );
+          break; // Detén el reintento si falla
+        }
       }
-
-      if (puntos.entrega) {
-        allPoints.push({
-          ...puntos.entrega,
-          type: 'entrega',
-          key: 'entrega',
-        });
-      }
-
-      setRoute(allPoints);
-
-      for (const point of allPoints) {
-        const {latitude, longitude} = point.location;
-        const geofence = {
-          tag: `tt_${id}`,
-          externalId: `load_${id}_${point.key}`,
-          description: `Geofence for load ${id} ${point.key}`,
-          coordinates: [longitude, latitude],
-          radius: point.radius || 750,
-          userIds: [deviceId],
-          live: false,
-        };
-
-        await createGeofence(geofence);
-      }
-    } catch (error) {
-      console.error('Error fetching geofences:', error);
     }
-  }, [deviceId, id]);
+  }, [getPendingData, netInfo.isConnected]);
 
-  const createGeofence = async (geofence: {
-    tag: string;
-    externalId: string;
-    description: string;
-    coordinates: number[];
-    radius: number;
-    userIds: (string | null)[];
-  }) => {
-    try {
-      const response = await fetch(
-        `https://api.radar.io/v1/geofences/${geofence.tag}/${geofence.externalId}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization:
-              'prj_live_sk_5c0ef8c2755aefb837e398da83aad8062c57aa6b',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            description: geofence.description,
-            type: 'circle',
-            coordinates: geofence.coordinates,
-            radius: geofence.radius,
-            userIds: geofence.userIds,
-            dwellThreshold: 10,
-          }),
-        },
-      );
+  // Función para enviar datos de ubicación a un webhook
+  const sendLocationWebhook = useCallback(
+    async (data: any) => {
+      try {
+        const response = await axios.post(
+          'https://us-central1-trapape.cloudfunctions.net/handleRadarLocation',
+          data,
+        );
+        console.log('Location data sent successfully:', response.data);
+      } catch (error) {
+        console.error('Error sending location data:', error);
+        await savePendingData('pendingLocationData', data);
+      }
+    },
+    [savePendingData],
+  );
 
-      const data = await response.json();
-      console.log('Geofence created:', data);
-    } catch (error) {
-      console.error('Error creating geofence:', error);
-    }
-  };
+  // Función para enviar datos de eventos a un webhook
+  const sendEventsWebhook = useCallback(
+    async (data: any) => {
+      try {
+        const response = await axios.post(
+          'https://us-central1-trapape.cloudfunctions.net/handleRadarEvents',
+          data,
+        );
+        console.log('Events data sent successfully:', response.data);
+      } catch (error) {
+        console.error('Error sending events data:', error);
+        await savePendingData('pendingEventsData', data);
+      }
+    },
+    [savePendingData],
+  );
 
+  // Función para obtener la ubicación actual
   const getCurrentLocation = async () => {
     try {
       const result = await Radar.getLocation();
@@ -201,6 +175,7 @@ const TrackingScreen = () => {
     }
   };
 
+  // Obtener el ID del dispositivo al cargar el componente
   useEffect(() => {
     const getDeviceId = async () => {
       const idDevice = await DeviceInfo.getUniqueId();
@@ -210,6 +185,7 @@ const TrackingScreen = () => {
     getDeviceId();
   }, []);
 
+  // Función para iniciar el seguimiento
   const startTracking = async () => {
     setLoading(true);
     try {
@@ -243,9 +219,31 @@ const TrackingScreen = () => {
     }
   };
 
+  // Función para detener el seguimiento
+  const stoptTracking = async () => {
+    setLoading(true);
+    try {
+      Radar.off('clientLocation');
+      Radar.off('location');
+      Radar.off('events');
+      Radar.off('error');
+      Radar.stopTracking();
+      setLoading(false);
+    } catch (err) {
+      console.error('Error al detener:', err);
+      Alert.alert(
+        'Error al detener',
+        (err as Error).message || JSON.stringify(err),
+      );
+      Radar.stopTracking();
+      setLoading(false);
+    }
+  };
+
+  // Función para verificar el estado del seguimiento
   const isTracking = async () => {
     try {
-      const result = await Radar.getLocation();
+      const result = await Radar.isTracking();
       Alert.alert('Estado de rastreo', JSON.stringify(result));
       console.log('Tracking status:', result);
     } catch (err) {
@@ -254,93 +252,106 @@ const TrackingScreen = () => {
         'Error al obtener el estado de rastreo',
         (err as Error).message || JSON.stringify(err),
       );
-      Radar.stopTracking();
     }
   };
 
+  // Efecto para enviar datos en cola cuando hay conexión a Internet
+  useEffect(() => {
+    if (netInfo.isConnected) {
+      sendQueue(); // Iniciar el proceso de envío cuando hay conexión
+    }
+  }, [netInfo.isConnected, sendQueue]);
+
+  // Efecto para inicializar el seguimiento al cargar el componente
   useEffect(() => {
     const initializeTracking = async () => {
       setLoading(true);
       try {
         Radar.stopTracking();
         if (deviceId && id !== undefined) {
-          await setData(
-            '/projects/proj_meqjHnqVDFjzhizHdj6Fjq/geoFireGroups/ServiceTracking/',
-            id,
-            {message: 'Inicial', device: DeviceInfo, date: new Date()},
-          );
+          const allPoints = await fetchAndCreateGeofences();
+          setRoute(allPoints ?? []); // Asegúrate de usar setRoute con un array vacío como valor predeterminado
+          await processGeofences(allPoints);
 
-          await setData(
-            '/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/LogLocation/',
-            id,
-            {
-              idLoad: id,
-              device: DeviceInfo,
-              date: new Date(),
-              listLocation: {
-                device: DeviceInfo,
-                date: new Date(),
-              },
-            },
-          );
           Radar.initialize(
             'prj_live_pk_5463e9a31811973fff88f5cca6c68b4a9923a80b',
           );
           Radar.setUserId(deviceId);
           Radar.setDescription(id);
           Radar.setLogLevel('debug');
-          await fetchAndCreateGeofences();
 
-          const onLocation = (result: {location: any}) => {
-            const {location} = result;
-            const deviceTimestamp = new Date();
+          const onLocation = (result: {
+            location: {latitude: number; longitude: number};
+          }) => {
+            try {
+              const {location} = result;
+              const deviceTimestamp = new Date();
 
-            if (location) {
-              const data = {
-                id,
-                location,
-                deviceTimestamp,
-                deviceId,
-              };
-              setCurrentLocation({
-                latitude: location.latitude,
-                longitude: location.longitude,
-              });
-              sendLocationWebhook(data);
-            } else {
-              console.error('No location data available');
+              if (location) {
+                const data = {
+                  id,
+                  location,
+                  deviceTimestamp,
+                  deviceId,
+                };
+                setCurrentLocation({
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                });
+                sendLocationWebhook(data);
+              } else {
+                console.error('No location data available');
+              }
+            } catch (error) {
+              console.error('Error in onLocation:', error);
             }
           };
 
           Radar.on('location', onLocation);
 
-          const onEvents = (result: {events: any}) => {
-            const {events} = result;
-            if (events && events.length > 0) {
-              const deviceTimestamp = new Date();
-              events.forEach((event: any) => {
-                const data = {
-                  id,
-                  event,
-                  deviceTimestamp,
-                  deviceId,
-                };
-                sendEventsWebhook(data);
-              });
-            } else {
-              console.error('No events data available');
+          const onEvents = (result: {events: any[]}) => {
+            try {
+              const {events} = result;
+              if (events && events.length > 0) {
+                const deviceTimestamp = new Date();
+                events.forEach(event => {
+                  const data = {
+                    id,
+                    event,
+                    deviceTimestamp,
+                    deviceId,
+                  };
+                  sendEventsWebhook(data);
+                });
+              } else {
+                console.error('No events data available');
+              }
+            } catch (error) {
+              console.error('Error in onEvents:', error);
             }
           };
 
           Radar.on('events', onEvents);
 
-          Radar.on('error', (err: any) => {
-            console.error('Error event:', err);
-          });
+          const onError = (err: any) => {
+            try {
+              console.error('Error event:', err);
+            } catch (error) {
+              console.error('Error in onError:', error);
+            }
+          };
 
-          Radar.on('clientLocation', (result: any) => {
-            console.warn('clientLocation event:', result);
-          });
+          Radar.on('error', onError);
+
+          const onClientLocation = (result: any) => {
+            try {
+              console.warn('clientLocation event:', result);
+            } catch (error) {
+              console.error('Error in onClientLocation:', error);
+            }
+          };
+
+          Radar.on('clientLocation', onClientLocation);
 
           await getCurrentLocation();
           await startTracking();
@@ -352,82 +363,99 @@ const TrackingScreen = () => {
           'Error initializing tracking',
           (err as Error).message || JSON.stringify(err),
         );
-        Radar.stopTracking();
+        //Radar.stopTracking();
         setLoading(false);
       }
     };
 
     initializeTracking();
-  }, [deviceId, id, fetchAndCreateGeofences]);
+
+    // Cleanup function para desactivar los eventos y detener el seguimiento
+    return () => {
+      Radar.off('location');
+      Radar.off('events');
+      Radar.off('error');
+      Radar.off('clientLocation');
+      //Radar.stopTracking();
+    };
+  }, [
+    deviceId,
+    id,
+    fetchAndCreateGeofences,
+    processGeofences,
+    sendLocationWebhook,
+    sendEventsWebhook,
+  ]);
 
   return (
-    <View>
-      <Button
-        title="Comenzar Rastreo"
-        onPress={() => {
-          startTracking();
-        }}
-      />
-      <Button
-        title="Detener Rastreo"
-        onPress={() => {
-          Radar.stopTracking();
-        }}
-      />
-      <Button
-        title="¿Estoy rastreando?"
-        onPress={() => {
-          isTracking();
-        }}
-      />
-      <MapView
-        style={styles.map}
-        region={{
-          latitude: currentLocation ? currentLocation.latitude : 37.78825,
-          longitude: currentLocation ? currentLocation.longitude : -122.4324,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}>
-        {currentLocation && (
-          <Marker
-            coordinate={{
-              latitude: currentLocation.latitude,
-              longitude: currentLocation.longitude,
-            }}
-            title="Current Location"
-          />
-        )}
-        {route.map((point, index) => (
-          <Marker
-            key={index}
-            coordinate={{
-              latitude: point.location.latitude,
-              longitude: point.location.longitude,
-            }}
-            title={point.type}
-            description={point.key}
-          />
-        ))}
-        {currentLocation && route.length > 0 && (
-          <Polyline
-            coordinates={[
-              {
+    <NetworkProvider>
+      <View>
+        <Button
+          title="Comenzar Rastreo"
+          onPress={() => {
+            startTracking();
+          }}
+        />
+        <Button
+          title="Detener Rastreo"
+          onPress={() => {
+            stoptTracking();
+          }}
+        />
+        <Button
+          title="¿Estoy rastreando?"
+          onPress={() => {
+            isTracking();
+          }}
+        />
+        <MapView
+          style={styles.map}
+          region={{
+            latitude: currentLocation ? currentLocation.latitude : 37.78825,
+            longitude: currentLocation ? currentLocation.longitude : -122.4324,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}>
+          {currentLocation && (
+            <Marker
+              coordinate={{
                 latitude: currentLocation.latitude,
                 longitude: currentLocation.longitude,
-              },
-              ...route.map(point => ({
+              }}
+              title="Current Location"
+            />
+          )}
+          {route.map((point, index) => (
+            <Marker
+              key={index}
+              coordinate={{
                 latitude: point.location.latitude,
                 longitude: point.location.longitude,
-              })),
-            ]}
-            strokeColor="#000"
-            strokeWidth={3}
-          />
-        )}
-      </MapView>
-
-      <Loader loading={loading} />
-    </View>
+              }}
+              title={point.type}
+              description={point.key}
+            />
+          ))}
+          {currentLocation && route.length > 0 && (
+            <Polyline
+              coordinates={[
+                {
+                  latitude: currentLocation.latitude,
+                  longitude: currentLocation.longitude,
+                },
+                ...route.map(point => ({
+                  latitude: point.location.latitude,
+                  longitude: point.location.longitude,
+                })),
+              ]}
+              strokeColor="#000"
+              strokeWidth={3}
+            />
+          )}
+        </MapView>
+        <Loader loading={loading} />
+      </View>
+    </NetworkProvider>
   );
 };
 

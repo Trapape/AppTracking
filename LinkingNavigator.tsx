@@ -58,14 +58,13 @@ function LinkingNavigator() {
   const {setId} = useAppContext(); // Use the context here
 
   useEffect(() => {
-    const getInitialURL = async () => {
-      const url = await Linking.getInitialURL();
+    const handleDeepLink = (event: {url: any}) => {
+      const url = event.url;
       if (url) {
         try {
           const {scream, params} = parseCustomURL(url);
           if (scream === 'entercode' && params) {
-            console.log('Setting ID:', params); // Debugging line
-            setId(params); // Save the id to the context
+            setId(params);
             setInitialRoute('SecurityCode');
           } else if (scream === 'permissions') {
             setInitialRoute('LocationPermission');
@@ -78,7 +77,23 @@ function LinkingNavigator() {
       }
     };
 
+    // Obtener el URL inicial si la aplicación fue lanzada desde un enlace profundo
+    const getInitialURL = async () => {
+      const url = await Linking.getInitialURL();
+      if (url) {
+        handleDeepLink({url});
+      }
+    };
+
     getInitialURL();
+
+    // Añadir listener para manejar enlaces mientras la aplicación está en segundo plano
+    const linkingListener = Linking.addEventListener('url', handleDeepLink);
+
+    return () => {
+      // Limpiar el listener cuando el componente se desmonte
+      linkingListener.remove();
+    };
   }, [setId]);
 
   return (

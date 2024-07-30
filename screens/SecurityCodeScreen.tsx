@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  BackHandler,
 } from 'react-native';
 import database from '@react-native-firebase/database';
 import SvgSecurity from '../assets/images/SvgSecurity';
 import {useAppContext} from '../context/AppContext';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from 'react-native-screens/lib/typescript/native-stack/types';
-import Loader from '../componeentes/Loader';
-import CustomAlert from '../componeentes/CustomAlert';
+import Loader from '../componentes/Loader';
+import CustomAlert from '../componentes/CustomAlert';
 
 function SecurityCodeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
@@ -21,6 +22,24 @@ function SecurityCodeScreen() {
   const [alertVisible, setAlertVisible] = useState(false);
   const [code, setCode] = useState('');
   const {id} = useAppContext();
+
+  useEffect(() => {
+    if (!id) {
+      Alert.alert(
+        'Atención',
+        'Debe dar clic en el enlace que se le compartió para poder acceder a esta pantalla.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              BackHandler.exitApp();
+            },
+          },
+        ],
+        {cancelable: false},
+      );
+    }
+  }, [id]);
 
   const handleVerifyCode = async () => {
     setLoading(true);

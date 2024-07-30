@@ -39,8 +39,7 @@
           <action android:name="android.intent.action.VIEW" />
           <category android:name="android.intent.category.DEFAULT" />
           <category android:name="android.intent.category.BROWSABLE" />
-          <data android:scheme="https" android:host="apptracking.com" />
-          <data android:scheme="trapape" android:host="app" /> <!-- Añade un host específico -->
+          <data android:scheme="apptracking" android:host="app" />
         </intent-filter>
       </activity>
     </application>

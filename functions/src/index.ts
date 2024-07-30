@@ -124,10 +124,15 @@ exports.handleRadarEvents = functions.https.onRequest(
       const eventExternalId = parts[2] || event.geofence.externalId;
       const indexEventExternalId = parts[3] || null;
 
+      // Construir la ruta según los valores de parts[2] y parts[3]
+      const eventPath = indexEventExternalId
+        ? `${eventExternalId}_${indexEventExternalId}`
+        : eventExternalId;
+
       const logRef = admin
         .database()
         .ref(
-          `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/LogEventGeofence/${id}/${eventExternalId}`,
+          `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/LogEventGeofence/${id}/${eventPath}`,
         );
       await logRef.push({
         event,
