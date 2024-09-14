@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "trapape"
-  }
+    "default": "trapape",
+    "dev": "trapape-dev"
+  },
+  "targets": {},
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
 }

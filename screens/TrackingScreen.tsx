@@ -76,7 +76,8 @@ const TrackingScreen = () => {
         const data = pendingLocationData.shift();
         try {
           const response = await axios.post(
-            'https://us-central1-trapape.cloudfunctions.net/handleRadarLocation',
+            //'https://us-central1-trapape.cloudfunctions.net/handleRadarLocation',
+            'https://us-central1-trapape-dev.cloudfunctions.net/handleRadarLocation',
             data,
           );
           console.log(
@@ -102,7 +103,8 @@ const TrackingScreen = () => {
         const data = pendingEventsData.shift();
         try {
           const response = await axios.post(
-            'https://us-central1-trapape.cloudfunctions.net/handleRadarEvents',
+            //'https://us-central1-trapape.cloudfunctions.net/handleRadarEvents',
+            'https://us-central1-trapape-dev.cloudfunctions.net/handleRadarEvents',
             data,
           );
           console.log(
@@ -131,7 +133,8 @@ const TrackingScreen = () => {
     async (data: any) => {
       try {
         const response = await axios.post(
-          'https://us-central1-trapape.cloudfunctions.net/handleRadarLocation',
+          //'https://us-central1-trapape.cloudfunctions.net/handleRadarLocation',
+          'https://us-central1-trapape-dev.cloudfunctions.net/handleRadarLocation',
           data,
         );
         console.log('Location data sent successfully:', response.data);
@@ -148,7 +151,8 @@ const TrackingScreen = () => {
     async (data: any) => {
       try {
         const response = await axios.post(
-          'https://us-central1-trapape.cloudfunctions.net/handleRadarEvents',
+          //'https://us-central1-trapape.cloudfunctions.net/handleRadarEvents',
+          'https://us-central1-trapape-dev.cloudfunctions.net/handleRadarEvents',
           data,
         );
         console.log('Events data sent successfully:', response.data);
