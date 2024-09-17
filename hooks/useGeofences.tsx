@@ -142,8 +142,9 @@ const useGeofences = (id: any, deviceId: string | null) => {
 
         let geofence;
         if (existingGeofence) {
+          console.log('Geofence', existingGeofence);
           const existingUserIds = existingGeofence.userIds
-            ? existingGeofence.userIds.split(',')
+            ? existingGeofence.userIds
             : [];
           if (!existingUserIds.includes(deviceId!)) {
             geofence = {

@@ -146,6 +146,32 @@ const TrackingScreen = () => {
     [savePendingData],
   );
 
+  // Función para enviar datos de ubicación a un webhook
+  const sendClientLocationWebhook = useCallback(async (data: any) => {
+    try {
+      const response = await axios.post(
+        'https://us-central1-trapape-dev.cloudfunctions.net/handleRadarClientLocation',
+        data,
+      );
+      console.log('Location data sent successfully:', response.data);
+    } catch (error) {
+      console.error('Error sending client location data:', error);
+    }
+  }, []);
+
+  // Función para enviar datos de ubicación a un webhook
+  const sendErrorLocationWebhook = useCallback(async (data: any) => {
+    try {
+      const response = await axios.post(
+        'https://us-central1-trapape-dev.cloudfunctions.net/handleRadarError',
+        data,
+      );
+      console.log('Location data sent successfully:', response.data);
+    } catch (error) {
+      console.error('Error sending client location data:', error);
+    }
+  }, []);
+
   // Función para enviar datos de eventos a un webhook
   const sendEventsWebhook = useCallback(
     async (data: any) => {
@@ -339,6 +365,24 @@ const TrackingScreen = () => {
 
           const onError = (err: any) => {
             try {
+              const deviceTimestamp = new Date();
+
+              if (err) {
+                const data = {
+                  id,
+                  err,
+                  deviceTimestamp,
+                  deviceId,
+                };
+                sendErrorLocationWebhook(data);
+              } else {
+                console.error('No Client location data available');
+              }
+            } catch (error) {
+              console.error('Error in onClientLocation:', error);
+            }
+
+            try {
               console.error('Error event:', err);
             } catch (error) {
               console.error('Error in onError:', error);
@@ -349,7 +393,19 @@ const TrackingScreen = () => {
 
           const onClientLocation = (result: any) => {
             try {
-              console.warn('clientLocation event:', result);
+              const deviceTimestamp = new Date();
+
+              if (result) {
+                const data = {
+                  id,
+                  result,
+                  deviceTimestamp,
+                  deviceId,
+                };
+                sendClientLocationWebhook(data);
+              } else {
+                console.error('No Client location data available');
+              }
             } catch (error) {
               console.error('Error in onClientLocation:', error);
             }
@@ -389,6 +445,8 @@ const TrackingScreen = () => {
     processGeofences,
     sendLocationWebhook,
     sendEventsWebhook,
+    sendClientLocationWebhook,
+    sendErrorLocationWebhook,
   ]);
 
   return (
