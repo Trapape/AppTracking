@@ -210,3 +210,139 @@ exports.handleRadarEvents = functions.https.onRequest(
     }
   },
 );
+
+exports.handleRadarClientLocation = functions.https.onRequest(
+  async (
+    req: {body: any},
+    res: {
+      status: (arg0: number) => {
+        (): any;
+        new (): any;
+        send: {(arg0: string): any; new (): any};
+      };
+    },
+  ) => {
+    const data = req.body;
+    const {id, result, deviceTimestamp, deviceId} = data;
+
+    if (!id || !result || !deviceTimestamp || !deviceId) {
+      const metadata = {
+        deviceTimestamp: deviceTimestamp,
+        resource: {type: 'cloud_function'},
+        severity: 'ERROR',
+        deviceId: deviceId,
+      };
+      const entry = log.entry(metadata, {
+        message: 'Missing fields',
+        error: {
+          id,
+          result,
+          deviceTimestamp,
+          deviceId,
+        },
+      });
+      await log.write(entry);
+      return res.status(400).send('Missing fields');
+    }
+
+    try {
+      const serverTimestamp = admin.database.ServerValue.TIMESTAMP;
+      await admin
+        .database()
+        .ref(
+          `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/LogClientLocation/${id}/listLocation/`,
+        )
+        .push({
+          result,
+          deviceTimestamp,
+          serverTimestamp,
+        });
+      return res.status(200).send('Client Location data saved successfully');
+    } catch (error) {
+      console.error('Error saving events data:', error);
+
+      // Logging the error
+      const metadata = {
+        deviceTimestamp: deviceTimestamp,
+        resource: {type: 'cloud_function'},
+        severity: 'ERROR',
+        deviceId: deviceId,
+      };
+      const entry = log.entry(metadata, {
+        message: 'Error saving location data',
+        error,
+      });
+      await log.write(entry);
+
+      return res.status(500).send('Internal Server Error');
+    }
+  },
+);
+
+exports.handleRadarError = functions.https.onRequest(
+  async (
+    req: {body: any},
+    res: {
+      status: (arg0: number) => {
+        (): any;
+        new (): any;
+        send: {(arg0: string): any; new (): any};
+      };
+    },
+  ) => {
+    const data = req.body;
+    const {id, result, deviceTimestamp, deviceId} = data;
+
+    if (!id || !result || !deviceTimestamp || !deviceId) {
+      const metadata = {
+        deviceTimestamp: deviceTimestamp,
+        resource: {type: 'cloud_function'},
+        severity: 'ERROR',
+        deviceId: deviceId,
+      };
+      const entry = log.entry(metadata, {
+        message: 'Missing fields',
+        error: {
+          id,
+          result,
+          deviceTimestamp,
+          deviceId,
+        },
+      });
+      await log.write(entry);
+      return res.status(400).send('Missing fields');
+    }
+
+    try {
+      const serverTimestamp = admin.database.ServerValue.TIMESTAMP;
+      await admin
+        .database()
+        .ref(
+          `/projects/proj_meqjHnqVDFjzhizHdj6Fjq/data/LogErrorLocation/${id}/listLocation/`,
+        )
+        .push({
+          result,
+          deviceTimestamp,
+          serverTimestamp,
+        });
+      return res.status(200).send('Error Location data saved successfully');
+    } catch (error) {
+      console.error('Error saving events data:', error);
+
+      // Logging the error
+      const metadata = {
+        deviceTimestamp: deviceTimestamp,
+        resource: {type: 'cloud_function'},
+        severity: 'ERROR',
+        deviceId: deviceId,
+      };
+      const entry = log.entry(metadata, {
+        message: 'Error saving location data',
+        error,
+      });
+      await log.write(entry);
+
+      return res.status(500).send('Internal Server Error');
+    }
+  },
+);
